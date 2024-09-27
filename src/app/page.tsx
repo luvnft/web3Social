@@ -60,7 +60,9 @@ const filteredProfiles = userProfiles.filter(profile =>
   return (
       <main className="min-h-screen bg-base-950 flex flex-col items-center p-4">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-8 text-neutral-200">FindMe Web3</h1>
+          <h1 className="text-5xl font-bold mb-8 text-neutral-200">WYA WEB5</h1>
+          <h2 className="text-2xl font-medium mb-6 text-neutral-400">Find ENS, Farcaster, and Lens profiles.</h2>
+
 
 
           <div className="flex flex-row items-center justify-center mb-4">
