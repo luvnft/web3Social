@@ -1,101 +1,123 @@
-import Image from "next/image";
+"use client";
+
+import {  SocialProfile } from "thirdweb/react";
+import { useEffect, useState } from "react";
+import { getSocialProfiles } from "thirdweb/social";
+import { client } from "./client";
+import { shortenAddress } from "thirdweb/utils";
+import { CardSkeleton } from "./components/CardSkeleton";
+import { ENSCard } from "./components/ENSCard";
+import { FarcasterCard } from "./components/FarcasterCard";
+import { LensCard } from "./components/LensCard";
+
+
+type FilterType = "all" | "ens" | "farcaster" | "lens";
+
+const isValidEthereumAddress = (address: string)=>{
+  return /^0x[a-fA-f0-9]{40}$/.test(address);
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [searchInput, setSearchInput] = useState("");
+  const [searchedAddress, setSearchAddress] = useState("");
+  const [userProfiles, setUserProfiles] = useState<SocialProfile[]>([]);
+  const [activefilter, setActiveFilter] = useState<FilterType>("all");
+  const [hasSearched, setHasSearched] = useState(false);
+  const [isLoading, setLoading] = useState(false);
+  const [isValidAddress, setIsValidAddress] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(()=>{
+    setIsValidAddress(isValidEthereumAddress(searchInput));
+  },[searchInput]);
+
+  const handleSearch = async() => {
+    if(!isValidAddress) return; // chech wheater address is correct
+    setLoading(true);
+    setSearchAddress(searchInput);
+  try {
+    const profiles = await getSocialProfiles({ // geting our social profiles
+      client: client,
+      address: searchInput
+    });
+
+    setUserProfiles(profiles);
+    setHasSearched(true);
+
+  } catch (error) {
+    console.log(error);
+  } finally {
+    setLoading(false);
+    setSearchInput("")
+  }
+};
+
+
+const filteredProfiles = userProfiles.filter(profile =>
+  activefilter === "all" || profile.type === activefilter
+);
+
+
+  return (
+      <main className="min-h-screen bg-base-950 flex flex-col items-center p-4">
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold mb-8 text-neutral-200">FindMe Web3</h1>
+
+
+          <div className="flex flex-row items-center justify-center mb-4">
+          <input
+            type="text"
+            placeholder="Enter wallet address"
+            className={`bg-zinc-800 text-neutral-200 border border-zinc-700 rounded-md px-4 py-2 ${!isValidAddress && searchInput ? 'input-error' : ''}`}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            disabled={isLoading}
+          />
+          <button 
+            className="bg-blue-600 text-white px-4 py-2 mx-3 rounded-md hover:bg-blue-700" 
+            onClick={handleSearch}
+            disabled={isLoading || !isValidAddress}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {isLoading ? "Searching..." : "Search"}
+          </button>
         </div>
+        { searchInput && !isValidAddress && (
+          <p className="text-red-500 text-xs text-left mt-1">please enter a valid eth address</p>
+        )}
+
+{hasSearched && (
+          <>
+            <p className="text-sm text-gray-400 mb-4">Search results for: {shortenAddress(searchedAddress)}</p>
+            <div className="flex space-x-2 bg-zinc-800 p-1 rounded-lg">
+              {["all", "ens", "farcaster", "lens"].map((filter) => (
+                <a
+                  key={filter}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${activefilter === filter ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-zinc-700 hover:text-white"}`}
+                  onClick={() => setActiveFilter(filter as FilterType)}
+                >
+                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                </a>
+              ))}
+            </div>
+          </>
+        )}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 w-full">
+        {isLoading ? (
+          Array(3).fill(0).map((_, index) => <CardSkeleton key={index} />)
+        ) : hasSearched && filteredProfiles.length > 0 ? (
+          filteredProfiles.map((profile, index) => (
+            <div key={index} className="w-full h-full">
+              {profile.type === "ens" && <ENSCard profile={profile} />}
+              {profile.type === "farcaster" && <FarcasterCard profile={profile} />}
+              {profile.type === "lens" && <LensCard profile={profile} />}
+            </div>
+          ))
+        ) : hasSearched ? (
+          <p className="text-center text-gray-500 col-span-full">No profiles found for this address.</p>
+        ) : null}
+      </div>
+
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
   );
 }
