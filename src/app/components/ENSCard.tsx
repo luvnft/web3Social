@@ -31,7 +31,7 @@ export function ENSCard({ profile }: ENSCardProps) {
         </div>
         <div className="flex flex-col h-fit">
           <h2 className="text-xl font-semibold">{profile.name || 'Unnamed ENS'}</h2>
-          <p className="text-xs text-gray-500 border border-gray-500 rounded-lg px-2 py-1 inline-block mt-2 flex items-center">
+          <p className="text-xs text-gray-500 border border-gray-500 rounded-lg px-2 py-1 mt-2 flex items-center">
             {shortenAddress(ensMetadata.address as string)}
           </p>
         </div>
